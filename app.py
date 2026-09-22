@@ -52,8 +52,8 @@ def predict():
             file.save(temp_path)
 
         result = client.predict(
-            handle_file(temp_path),
-            api_name="/predict"
+            handle_file(temp_path)
+            # api_name="/predict"
         )
 
         if isinstance(result, tuple):
