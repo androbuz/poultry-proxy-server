@@ -1,12 +1,28 @@
 import os
-import requests
+import tempfile
 
 from flask import Flask, request, jsonify
+from gradio_client import Client, handle_file
 
 app = Flask(__name__)
-# the env variables to set that will allow connection to the real server
-HF_SPACE_URL = os.environ["HF_SPACE_URL"]
+
+# env variables that will setup a hf space connection
+HF_SPACE = os.environ["HF_SPACE"]
 HF_TOKEN = os.environ["HF_TOKEN"]
+
+client = Client(
+    HF_SPACE,
+    token=HF_TOKEN,
+    verbose=False
+)
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({
+        "success": True
+    })
+
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -18,43 +34,50 @@ def predict():
             "error": "No audio file provided"
         }), 400
 
+    temp_path = None
+
     try:
-        response = requests.post(
-            f"{HF_SPACE_URL}/gradio_api/call/predict",
-            headers={
-                "Authorization": f"Bearer {HF_TOKEN}"
-            },
-            files={
-                "audio": (
-                    file.filename or "recording.m4a",
-                    file.stream,
-                    file.content_type or "audio/mp4"
-                )
-            },
-            timeout=120
+        suffix = os.path.splitext(
+            file.filename or "recording.m4a"
+        )[1]
+
+        if not suffix:
+            suffix = ".m4a"
+
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=suffix
+        ) as temp_file:
+            temp_path = temp_file.name
+            file.save(temp_path)
+
+        result = client.predict(
+            handle_file(temp_path),
+            api_name="/predict"
         )
 
-        if response.status_code != 200:
-            return jsonify({
-                "success": False,
-                "error": "Prediction service returned an error",
-                "details": response.text
-            }), response.status_code
+        if isinstance(result, tuple):
+            result = result[0]
 
-        return jsonify(response.json())
+        if isinstance(result, dict):
+            return jsonify(result)
 
-    except requests.RequestException as e:
+        return jsonify({
+            "success": True,
+            "result": result
+        })
+
+    except Exception as e:
+        print(f"Prediction error: {e}")
+
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 502
+        }), 500
 
-
-@app.route("/health")
-def health():
-    return jsonify({
-        "success": True
-    })
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 if __name__ == "__main__":
