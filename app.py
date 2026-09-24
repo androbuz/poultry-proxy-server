@@ -17,9 +17,9 @@ B2_APPLICATION_KEY = os.environ["B2_APPLICATION_KEY"]
 
 # B2 configuration
 B2_BUCKET = "VScreen"
-B2_ENDPOINT = "s3.eu-central-003.backblazeb2.com"
+B2_ENDPOINT = "https://s3.eu-central-003.backblazeb2.com"
 B2_REGION = "eu-central-003"
-B2_APK_KEY = "downloads/myapp.apk"
+B2_APK_KEY = "downloads/app.apk"
 
 # S3 client
 s3 = boto3.client(
