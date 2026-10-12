@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # env variables that will setup a hf space connection
 HF_SPACE = os.environ["HF_SPACE"]
-HF_TOKEN = os.environ["HF_TOKEN"]
+HF_TOKEN = os.environ["HF_TOKEN_1"]
 
 # B2 credentials loaded as environment variables
 B2_KEY_ID = os.environ["B2_KEY_ID"]
